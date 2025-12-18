@@ -27,7 +27,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* No background or shadow as requested */
         }
 
         .sprite-sheet {
@@ -39,7 +38,6 @@
             pointer-events: none;
         }
 
-        /* Adjusting positions to center the characters within their transparent borders */
         .show-egg {
             transform: translateX(23%); 
         }
@@ -56,7 +54,6 @@
             font-size: 2.8rem;
             font-weight: 900;
             color: #1e293b;
-            /* Simple outline for legibility over potentially variable image colors */
             text-shadow: 
                 -1px -1px 0 #fff,  
                  1px -1px 0 #fff,
@@ -66,7 +63,6 @@
             z-index: 10;
         }
 
-        /* Sidebar transition */
         #sidebar {
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 100;
@@ -87,6 +83,11 @@
         }
         .animate-live {
             animation: subtle-wobble 4s ease-in-out infinite;
+        }
+        
+        .paused {
+            animation-play-state: paused;
+            opacity: 0.7;
         }
     </style>
 </head>
@@ -130,11 +131,14 @@
 
         <!-- Phase 2: Timer running (Egg) -->
         <div id="timer-section" class="hidden flex flex-col items-center">
-            <div class="character-frame animate-live">
+            <div id="egg-container" class="character-frame animate-live">
                 <img src="eggo.png" alt="Egg" class="sprite-sheet show-egg">
                 <div id="display-time" class="timer-overlay">00:00</div>
             </div>
-            <button id="cancel-btn" class="mt-4 text-gray-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors">Cancel</button>
+            <div class="flex gap-6 mt-4">
+                <button id="pause-btn" class="text-indigo-600 hover:text-indigo-800 text-xs font-bold uppercase tracking-widest transition-colors">Pause</button>
+                <button id="cancel-btn" class="text-gray-400 hover:text-red-500 text-xs font-bold uppercase tracking-widest transition-colors">Cancel</button>
+            </div>
         </div>
 
         <!-- Phase 3: Result (Bird) -->
@@ -167,7 +171,8 @@
         const appState = {
             timer: null,
             timeLeft: 0,
-            history: []
+            history: [],
+            isPaused: false
         };
 
         const inputSection = document.getElementById('input-section');
@@ -178,6 +183,8 @@
         const historyList = document.getElementById('history-list');
         const displayTime = document.getElementById('display-time');
         const sidebar = document.getElementById('sidebar');
+        const pauseBtn = document.getElementById('pause-btn');
+        const eggContainer = document.getElementById('egg-container');
 
         // Sidebar logic
         document.getElementById('menu-btn').addEventListener('click', () => {
@@ -196,19 +203,35 @@
             if (!mins || mins <= 0) return;
 
             appState.timeLeft = mins * 60;
+            appState.isPaused = false;
+            pauseBtn.textContent = "Pause";
+            eggContainer.classList.remove('paused');
             updateDisplay();
             
             inputSection.classList.add('hidden');
             timerSection.classList.remove('hidden');
 
             appState.timer = setInterval(() => {
-                appState.timeLeft--;
-                updateDisplay();
-                if (appState.timeLeft <= 0) {
-                    clearInterval(appState.timer);
-                    showResult();
+                if (!appState.isPaused) {
+                    appState.timeLeft--;
+                    updateDisplay();
+                    if (appState.timeLeft <= 0) {
+                        clearInterval(appState.timer);
+                        showResult();
+                    }
                 }
             }, 1000);
+        });
+
+        // Pause/Resume Logic
+        pauseBtn.addEventListener('click', () => {
+            appState.isPaused = !appState.isPaused;
+            pauseBtn.textContent = appState.isPaused ? "Resume" : "Pause";
+            if (appState.isPaused) {
+                eggContainer.classList.add('paused');
+            } else {
+                eggContainer.classList.remove('paused');
+            }
         });
 
         document.getElementById('cancel-btn').addEventListener('click', () => {
@@ -234,6 +257,7 @@
             resultSection.classList.add('hidden');
             inputSection.classList.remove('hidden');
             document.getElementById('minutes-input').value = '';
+            appState.isPaused = false;
         }
 
         document.getElementById('success-yes').addEventListener('click', resetToStart);
